@@ -807,3 +807,16 @@ tr:hover td {
         display: block !important;
     }
 }
+/* --- Final Responsive Overrides --- */
+@media (max-width: 1024px) {
+    .topbar {
+        display: flex !important;
+        pointer-events: auto !important;
+    }
+    .topbar-logo {
+        display: block !important;
+    }
+    .menu-toggle {
+        display: block !important;
+    }
+}
