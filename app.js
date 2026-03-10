@@ -11,18 +11,12 @@ let currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 /* ─── Sidebar User Info ──────────────────────────────── */
 function initSidebarUser() {
     const nameEl = document.getElementById('sidebarUserName');
-    const avatarEl = document.getElementById('sidebarAvatar');
-
-    if (currentUser) {
-        if (nameEl) {
-            const name = currentUser.first_name || 'Usuario';
-            const last = currentUser.last_name || '';
-            nameEl.textContent = `${name} ${last}`.trim();
-        }
-        if (avatarEl) {
-            const initial = currentUser.first_name ? currentUser.first_name[0].toUpperCase() : 'U';
-            avatarEl.src = `https://ui-avatars.com/api/?name=${initial}&background=22c55e&color=fff&size=64`;
-        }
+    // NOTE: sidebarAvatar keeps cea_logo.png by default (set in HTML)
+    // We do NOT override it here so the CEA logo always shows
+    if (currentUser && nameEl) {
+        const name = currentUser.first_name || 'Usuario';
+        const last = currentUser.last_name || '';
+        nameEl.textContent = `${name} ${last}`.trim();
     }
 }
 

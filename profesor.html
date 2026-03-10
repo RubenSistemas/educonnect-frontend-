@@ -177,6 +177,51 @@
       if (msgs) renderMsgHistory([], msgs.received || []);
     }
 
+    async function subirMaterial() {
+      const subject_id = document.getElementById('matSubject').value;
+      const title = document.getElementById('matTitle').value.trim();
+      const url = document.getElementById('matUrl').value.trim();
+      if (!subject_id || !title || !url) { showAlert('Completa todos los campos', 'warning'); return; }
+      const res = await api('/api/profesor/materials', { method: 'POST', body: JSON.stringify({ subject_id, title, url }) });
+      if (res && res.id) {
+        showBanner('✅ Material publicado', '');
+        document.getElementById('matTitle').value = '';
+        document.getElementById('matUrl').value = '';
+        loadMaterialsList(subject_id);
+      }
+    }
+
+    async function loadMaterialsList(sid) {
+      const mats = await api(`/api/profesor/materials/${sid}`);
+      if (mats) {
+        document.getElementById('materialsList').innerHTML = mats.map(m => `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:rgba(255,255,255,0.03); border-radius:8px; margin-bottom:8px">
+            <a href="${m.url}" target="_blank" style="color:var(--accent); text-decoration:none">📄 ${m.title}</a>
+            <button class="btn btn-sm" style="color:var(--red); background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2)" onclick="borrarMaterial(${m.id})">🗑</button>
+          </div>`).join('') || '<p style="font-size:0.8rem; color:var(--text-muted)">Sin materiales aún.</p>';
+      }
+    }
+
+    async function borrarMaterial(id) {
+      await api(`/api/profesor/materials/${id}`, { method: 'DELETE' });
+      const sid = document.getElementById('matSubject').value;
+      if (sid) loadMaterialsList(sid);
+    }
+
+    async function guardarNota(enrollmentId, dimension, score, totalEl) {
+      const res = await api('/api/profesor/grade', { method: 'POST', body: JSON.stringify({ enrollment_id: enrollmentId, dimension, score: parseFloat(score) }) });
+      if (res && res.grade) {
+        showToast('Nota guardada ✅');
+        const row = document.getElementById('row-enr-' + enrollmentId);
+        if (row) {
+          const inputs = row.querySelectorAll('.grade-input');
+          let total = 0;
+          inputs.forEach(inp => total += parseFloat(inp.value) || 0);
+          row.querySelector('.total-cell').textContent = total;
+        }
+      }
+    }
+
     function toggleSidebar() {
       document.querySelector(".sidebar").classList.toggle("open");
       document.getElementById("sidebarOverlay").classList.toggle("open");
