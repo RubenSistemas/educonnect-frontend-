@@ -1,0 +1,187 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Profesor - EduConnect Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js"></script>
+</head>
+
+<body>
+
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <aside class="sidebar">
+    <!-- PERFIL EN LA ESQUINA IZQUIERDA -->
+    <div class="sidebar-profile">
+      <img src="cea_logo.png" id="sidebarAvatar" alt="Avatar CEA" class="sidebar-avatar">
+      <div class="sidebar-profile-info">
+        <strong id="sidebarUserName">Cargando...</strong>
+        <small>Portal Docente</small>
+      </div>
+    </div>
+
+    <nav>
+      <a href="#" class="active" onclick="showTab('notas',this)">📝 Calificar</a>
+      <a href="#" onclick="showTab('materiales',this)">📁 Materiales</a>
+      <a href="#" onclick="showTab('anuncios',this)">📢 Anuncios</a>
+    </nav>
+
+    <!-- CERRAR SESIÓN DENTRO DEL SIDEBAR -->
+    <div class="sidebar-logout">
+      <a href="#" onclick="logout()">🔴 Cerrar Sesión</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+    </div>
+
+    <div class="header">
+      <h1>Panel Docente</h1>
+      <p>Bienvenido, <strong id="welcomeName">Docente</strong></p>
+    </div>
+
+    <!-- ══ TAB: NOTAS ══ -->
+    <div class="tab-content active" id="tab-notas">
+      <div class="card">
+        <h3>📚 Mis Asignaturas</h3>
+        <div class="subjects-grid" id="subjectCards">
+          <p>Cargando materias...</p>
+        </div>
+      </div>
+      <div id="studentsSection" style="display:none">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px">
+            <div>
+              <h3 style="margin-bottom:4px">🧑‍🎓 Planilla de Calificaciones</h3>
+              <p style="color:var(--text-muted); font-size:0.9rem">Materia: <strong id="selectedSubjectName">—</strong>
+              </p>
+            </div>
+            <button class="btn btn-sm btn-purple" onclick="descargarNotasMateria()">📥 Exportar CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Estudiante</th>
+                  <th>SER (10)</th>
+                  <th>SABER (35)</th>
+                  <th>HACER (35)</th>
+                  <th>DECIDIR (10)</th>
+                  <th>AUTO (10)</th>
+                  <th>Total</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="studentsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: MATERIALES ══ -->
+    <div class="tab-content" id="tab-materiales">
+      <div class="card">
+        <h3>📁 Biblioteca de Recursos</h3>
+        <div class="grid-2">
+          <div>
+            <div class="form-group"><label>Asignatura</label><select id="matSubject"></select></div>
+            <div class="form-group"><label>Título del Recurso</label><input type="text" id="matTitle"
+                placeholder="Ej: Lectura complementaria"></div>
+            <div class="form-group"><label>Enlace Externo</label><input type="url" id="matUrl"
+                placeholder="https://drive.google.com/..."></div>
+            <button class="btn btn-primary" style="width:100%" onclick="subirMaterial()">📤 Publicar Material</button>
+          </div>
+          <div class="card" style="background:rgba(0,0,0,0.1); border:1px dashed var(--border)">
+            <h4 style="margin-bottom:16px">Materiales Publicados</h4>
+            <div id="materialsList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: ANUNCIOS ══ -->
+    <div class="tab-content" id="tab-anuncios">
+      <div class="grid-2">
+        <div class="card">
+          <h3>📢 Enviar Anuncio a Estudiantes</h3>
+          <textarea id="announcement" placeholder="Escriba su comunicado aquí..." style="height:150px"></textarea>
+          <input type="hidden" id="announcementTarget" value="estudiante">
+          <button class="btn btn-primary" style="margin-top:20px; width:100%" onclick="enviarAnuncio()">📤
+            Enviar</button>
+        </div>
+        <div class="card">
+          <h3>📨 Mis Comunicados</h3>
+          <div id="msgHistoryRecibidos" style="max-height:400px; overflow-y:auto"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let mySubjects = [], selectedSubjectId = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!token) { window.location.href = 'index.html'; return; }
+      const u = currentUser;
+      if (u) {
+        document.getElementById('welcomeName').textContent = `${u.first_name || ''} ${u.last_name || ''}`.trim();
+        document.getElementById('sidebarUserName').textContent = `${u.first_name || ''} ${u.last_name || ''}`.trim();
+        const initial = u.first_name ? u.first_name[0].toUpperCase() : 'P';
+        document.getElementById('sidebarAvatar').src = `https://ui-avatars.com/api/?name=${initial}&background=22c55e&color=fff&size=64`;
+      }
+      loadSubjects();
+      loadMessages();
+    });
+
+    async function loadSubjects() {
+      const subjects = await api('/api/profesor/subjects');
+      if (subjects) {
+        mySubjects = subjects;
+        document.getElementById('subjectCards').innerHTML = subjects.map(s => `
+          <div class="subject-card" id="sc-${s.id}" onclick="selectSubject(${s.id}, '${s.name}')">
+            <h4>📘 ${s.name}</h4><p>Gestionar notas</p>
+          </div>`).join('');
+        document.getElementById('matSubject').innerHTML = '<option value="">— Seleccionar —</option>' + subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+      }
+    }
+
+    async function selectSubject(id, name) {
+      selectedSubjectId = id;
+      document.getElementById('selectedSubjectName').textContent = name;
+      document.getElementById('studentsSection').style.display = 'block';
+      const data = await api(`/api/profesor/students_by_subject/${id}`);
+      if (data && data.students) {
+        document.getElementById('studentsTable').innerHTML = data.students.map(s => `
+          <tr>
+            <td><strong>${s.first_name} ${s.last_name}</strong></td>
+            <td><input class="grade-input" type="number" value="0" max="10"></td>
+            <td><input class="grade-input" type="number" value="0" max="35"></td>
+            <td><input class="grade-input" type="number" value="0" max="35"></td>
+            <td><input class="grade-input" type="number" value="0" max="10"></td>
+            <td><input class="grade-input" type="number" value="0" max="10"></td>
+            <td><strong style="color:var(--accent)">0</strong></td>
+            <td><button class="btn btn-sm btn-primary" onclick="showBanner('PRO','Próximamente guardado real')">💾</button></td>
+          </tr>`).join('');
+      }
+    }
+
+    async function loadMessages() {
+      const msgs = await api('/api/messages');
+      if (msgs) renderMsgHistory([], msgs.received || []);
+    }
+
+    function toggleSidebar() {
+      document.querySelector(".sidebar").classList.toggle("open");
+      document.getElementById("sidebarOverlay").classList.toggle("open");
+    }
+  </script>
+</body>
+
+</html>

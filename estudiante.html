@@ -1,0 +1,139 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Estudiante - EduConnect Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js"></script>
+</head>
+
+<body>
+
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <aside class="sidebar">
+    <!-- PERFIL EN LA ESQUINA IZQUIERDA -->
+    <div class="sidebar-profile">
+      <img src="cea_logo.png" id="sidebarAvatar" alt="Avatar CEA" class="sidebar-avatar">
+      <div class="sidebar-profile-info">
+        <strong id="sidebarUserName">Cargando...</strong>
+        <small>Portal Estudiante</small>
+      </div>
+    </div>
+
+    <nav>
+      <a href="#" class="active" onclick="showTab('notas',this)">📊 Promedios</a>
+      <a href="#" onclick="showTab('materiales',this)">📁 Biblioteca</a>
+      <a href="#" onclick="showTab('anuncios',this)">📢 Novedades</a>
+    </nav>
+
+    <!-- CERRAR SESIÓN DENTRO DEL SIDEBAR -->
+    <div class="sidebar-logout">
+      <a href="#" onclick="logout()">🔴 Cerrar Sesión</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+    </div>
+
+    <div class="header">
+      <h1>Panel de Estudiante</h1>
+      <p>Bienvenido, <strong id="welcomeName">Estudiante</strong></p>
+    </div>
+
+    <!-- ══ TAB: NOTAS ══ -->
+    <div class="tab-content active" id="tab-notas">
+      <div class="card">
+        <h3>📊 Calificaciones por Materia</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Materia</th>
+                <th>Docente</th>
+                <th>Promedio Total</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="gradesTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: MATERIALES ══ -->
+    <div class="tab-content" id="tab-materiales">
+      <div class="grid-2" id="materialsGrid"></div>
+    </div>
+
+    <!-- ══ TAB: ANUNCIOS ══ -->
+    <div class="tab-content" id="tab-anuncios">
+      <div class="card">
+        <h3>📢 Comunicados de la Institución</h3>
+        <div id="msgHistoryRecibidos" style="max-height:500px; overflow-y:auto"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!token) { window.location.href = 'index.html'; return; }
+      const u = currentUser;
+      if (u) {
+        document.getElementById('welcomeName').textContent = `${u.first_name || ''} ${u.last_name || ''}`.trim();
+        document.getElementById('sidebarUserName').textContent = `${u.first_name || ''} ${u.last_name || ''}`.trim();
+        const initial = u.first_name ? u.first_name[0].toUpperCase() : 'E';
+        document.getElementById('sidebarAvatar').src = `https://ui-avatars.com/api/?name=${initial}&background=22c55e&color=fff&size=64`;
+      }
+      loadGrades();
+      loadMessages();
+    });
+
+    async function loadGrades() {
+      const grades = await api('/api/estudiante/grades');
+      if (grades) {
+        document.getElementById('gradesTable').innerHTML = grades.map(g => `
+          <tr>
+            <td><strong>${g.subject}</strong></td>
+            <td>${g.teacher_name}</td>
+            <td><strong style="font-size:1.1rem; color:var(--accent)">${g.total} / 100</strong></td>
+            <td><span class="badge ${g.estado === 'Aprobado' ? 'badge-green' : 'badge-red'}">${g.estado}</span></td>
+          </tr>`).join('');
+
+        document.getElementById('materialsGrid').innerHTML = grades.map(g => `
+          <div class="card">
+            <h4>📁 ${g.subject}</h4>
+            <button class="btn btn-sm btn-purple" onclick="loadMaterials(${g.subject_id})">📁 Ver Recursos</button>
+            <div id="mats-${g.subject_id}" style="margin-top:16px"></div>
+          </div>`).join('');
+      }
+    }
+
+    async function loadMaterials(sid) {
+      const mats = await api(`/api/estudiante/materials/${sid}`);
+      if (mats) {
+        document.getElementById(`mats-${sid}`).innerHTML = mats.map(m => `
+          <div class="material-item" style="padding:10px; background:rgba(255,255,255,0.03); border-radius:8px; margin-bottom:8px">
+            <a href="${m.url}" target="_blank" style="color:var(--accent); text-decoration:none; display:block">📄 ${m.title} ↗</a>
+          </div>`).join('') || '<p style="font-size:0.8rem; color:var(--text-muted)">Aún no hay recursos subidos.</p>';
+      }
+    }
+
+    async function loadMessages() {
+      const msgs = await api('/api/messages');
+      if (msgs) renderMsgHistory([], msgs.received || []);
+    }
+
+    function toggleSidebar() {
+      document.querySelector(".sidebar").classList.toggle("open");
+      document.getElementById("sidebarOverlay").classList.toggle("open");
+    }
+  </script>
+</body>
+
+</html>

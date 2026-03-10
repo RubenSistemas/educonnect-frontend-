@@ -1,0 +1,334 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Director - EduConnect Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js"></script>
+</head>
+
+<body>
+
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <aside class="sidebar">
+    <!-- PERFIL EN LA ESQUINA IZQUIERDA -->
+    <div class="sidebar-profile">
+      <img src="cea_logo.png" id="sidebarAvatar" alt="Avatar CEA" class="sidebar-avatar">
+      <div class="sidebar-profile-info">
+        <strong id="sidebarUserName">Cargando...</strong>
+        <small>Portal Dirección</small>
+      </div>
+    </div>
+
+    <nav>
+      <a href="#" class="active" onclick="showTab('inicio',this)">🏠 Inicio</a>
+      <a href="#" onclick="showTab('materias',this)">📚 Materias</a>
+      <a href="#" onclick="showTab('personal',this)">👥 Personal</a>
+      <a href="#" onclick="showTab('anuncios',this)">📢 Anuncios</a>
+    </nav>
+
+    <!-- CERRAR SESIÓN DENTRO DEL SIDEBAR -->
+    <div class="sidebar-logout">
+      <a href="#" onclick="logout()">🔴 Cerrar Sesión</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+    </div>
+
+    <div class="header">
+      <h1>Panel de Dirección</h1>
+      <p>Bienvenido, <strong id="welcomeName">Director</strong></p>
+    </div>
+
+    <!-- ══ TAB: INICIO ══ -->
+    <div class="tab-content active" id="tab-inicio">
+      <!-- STATS SOLO EN INICIO -->
+      <div class="grid-4" style="margin-top: 10px;">
+        <div class="stat-card accent">
+          <div class="stat-val" id="statProfesores">0</div>
+          <div class="stat-lbl">Docentes</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-val" id="statEstudiantes">0</div>
+          <div class="stat-lbl">Estudiantes</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-val" id="statTotal">0</div>
+          <div class="stat-lbl">Total Usuarios</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-val" id="statMaterias">0</div>
+          <div class="stat-lbl">Materias</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>👥 Estudiantes por Materia</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Materia</th>
+                  <th>Docente</th>
+                  <th>Inscritos</th>
+                </tr>
+              </thead>
+              <tbody id="subjectStudentTable">
+                <tr class="empty-row">
+                  <td colspan="3">Cargando datos...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <h3>👨‍🏫 Personal Docente</h3>
+          <div class="person-grid" id="personnelGrid">
+            <p style="color:var(--text-muted)">Cargando personal...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: MATERIAS ══ -->
+    <div class="tab-content" id="tab-materias">
+      <div class="grid-2">
+        <div class="card">
+          <h3>📘 Crear Nueva Materia</h3>
+          <div class="form-group">
+            <label>Nombre de la Materia</label>
+            <input type="text" id="newSubjectName" placeholder="Ej: Física Avanzada">
+          </div>
+          <div class="form-group">
+            <label>Asignar Docente</label>
+            <select id="newSubjectTeacher">
+              <option value="">— Sin asignar —</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="crearMateria()">✅ Guardar Materia</button>
+        </div>
+        <div class="card">
+          <h3>📚 Catálogo de Materias</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Materia</th>
+                  <th>Docente</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="allSubjectsTable">
+                <tr class="empty-row">
+                  <td colspan="3">Cargando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="dirAssignPanel" style="display:none; margin-top:20px">
+        <h3>🔄 Reasignar Docente</h3>
+        <p style="font-size:.9rem; margin-bottom:16px">Materia: <strong id="dirAssignName">—</strong></p>
+        <div style="display:flex; gap:12px; align-items:flex-end">
+          <div style="flex:1">
+            <label>Seleccionar Nuevo Docente</label>
+            <select id="dirAssignTeacher">
+              <option value="">— Sin asignar —</option>
+            </select>
+          </div>
+          <button class="btn btn-purple" style="width:auto" onclick="confirmarAsignacion()">✅ Confirmar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: PERSONAL ══ -->
+    <div class="tab-content" id="tab-personal">
+      <div class="card">
+        <h3>👥 Staff Académico Completo</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre Completo</th>
+                <th>Carnet</th>
+                <th>Rol</th>
+                <th>Usuario</th>
+              </tr>
+            </thead>
+            <tbody id="staffTable">
+              <tr class="empty-row">
+                <td colspan="4">Cargando...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: ANUNCIOS ══ -->
+    <div class="tab-content" id="tab-anuncios">
+      <div class="grid-2">
+        <div class="card">
+          <h3>📢 Emitir Comunicado Oficial</h3>
+          <div class="form-group">
+            <textarea id="announcement" placeholder="Escriba el mensaje aquí..." style="height:150px;"></textarea>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px">
+            <div class="form-group">
+              <label>Link Adjunto (Opcional)</label>
+              <input type="url" id="announcementLink" placeholder="https://...">
+            </div>
+            <div class="form-group">
+              <label>Grupo Destino</label>
+              <select id="announcementTarget">
+                <option value="todos">👥 Todos</option>
+                <option value="director">🏢 Solo Directivos</option>
+                <option value="secretaria">💼 Solo Secretaría</option>
+                <option value="profesor">👨‍🏫 Solo Docentes</option>
+                <option value="estudiante">📚 Solo Estudiantes</option>
+              </select>
+            </div>
+          </div>
+          <button id="btnAnuncio" class="btn btn-primary" style="width:100%" onclick="enviarAnuncio()">📤 Enviar
+            Ahora</button>
+        </div>
+        <div class="card">
+          <h3>📨 Bandeja de Mensajería</h3>
+          <div class="tabs">
+            <button id="tabEnviados" class="tab-btn active" onclick="switchMsgTab('enviados')">📤 Enviados</button>
+            <button id="tabRecibidos" class="tab-btn" onclick="switchMsgTab('recibidos')">📥 Recibidos</button>
+          </div>
+          <div id="msgHistoryEnviados" style="max-height:450px; overflow-y:auto"></div>
+          <div id="msgHistoryRecibidos" style="max-height:450px; overflow-y:auto; display:none"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let allSubjects = [], allTeachers = [], selectedSubjectId = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!token) { window.location.href = 'index.html'; return; }
+      const u = currentUser;
+      if (u) {
+        document.getElementById('welcomeName').textContent = `${u.first_name || ''} ${u.last_name || ''}`.trim();
+        document.getElementById('sidebarUserName').textContent = `${u.first_name || ''} ${u.last_name || ''}`.trim();
+        const initial = u.first_name ? u.first_name[0].toUpperCase() : 'D';
+        document.getElementById('sidebarAvatar').src = `https://ui-avatars.com/api/?name=${initial}&background=22c55e&color=fff&size=64`;
+      }
+      loadAll();
+    });
+
+    async function loadAll() {
+      const [stats, personnel, subjects, msgs] = await Promise.all([
+        api('/api/director/stats'),
+        api('/api/director/personnel'),
+        api('/api/subjects'),
+        api('/api/messages')
+      ]);
+
+      if (stats) {
+        document.getElementById('statProfesores').textContent = stats.teachers || 0;
+        document.getElementById('statEstudiantes').textContent = stats.students || 0;
+        document.getElementById('statTotal').textContent = stats.total_users || 0;
+        document.getElementById('statMaterias').textContent = stats.subjects || 0;
+      }
+      if (personnel) {
+        allTeachers = personnel.filter(p => p.role === 'profesor');
+        renderPersonnel(personnel);
+        fillTeacherSelects();
+      }
+      if (subjects) {
+        allSubjects = subjects;
+        renderSubjectTable(subjects);
+        renderAllSubjectsTable(subjects);
+      }
+      if (msgs) renderMsgHistory(msgs.sent || [], msgs.received || []);
+    }
+
+    function renderPersonnel(personnel) {
+      document.getElementById('personnelGrid').innerHTML = personnel.filter(p => p.role === 'profesor').map(p => `
+        <div class="user-card">
+          <div class="avatar-lg">${p.first_name[0]}${p.last_name[0]}</div>
+          <strong>${p.first_name} ${p.last_name}</strong>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">CP: ${p.carnet}</p>
+        </div>`).join('') || '<p>Sin docentes.</p>';
+
+      document.getElementById('staffTable').innerHTML = personnel.map(p => `
+        <tr>
+          <td><strong>${p.first_name} ${p.last_name}</strong></td>
+          <td><code>${p.carnet}</code></td>
+          <td><span class="badge ${p.role === 'profesor' ? 'badge-green' : 'badge-blue'}">${p.role.toUpperCase()}</span></td>
+          <td>${p.username}</td>
+        </tr>`).join('');
+    }
+
+    function renderSubjectTable(subjects) {
+      document.getElementById('subjectStudentTable').innerHTML = subjects.length
+        ? subjects.map(s => `<tr><td><strong>${s.name}</strong></td><td>${s.teacher_name || 'Sin asignar'}</td><td><span class="badge badge-purple">${s.enrolled_count || 0} inscritos</span></td></tr>`).join('')
+        : '<tr><td colspan="3">Sin materias.</td></tr>';
+    }
+
+    function renderAllSubjectsTable(subjects) {
+      document.getElementById('allSubjectsTable').innerHTML = subjects.length
+        ? subjects.map(s => `<tr><td><strong>${s.name}</strong></td><td>${s.teacher_name || '—'}</td><td><button class="btn btn-sm btn-purple" onclick="openAssign(${s.id},'${s.name}')">Reasignar</button></td></tr>`).join('')
+        : '<tr><td colspan="3">No hay materias registradas.</td></tr>';
+    }
+
+    function fillTeacherSelects() {
+      const opts = '<option value="">— Seleccionar Docente —</option>' + allTeachers.map(t => `<option value="${t.id}">${t.first_name} ${t.last_name}</option>`).join('');
+      const el1 = document.getElementById('newSubjectTeacher');
+      const el2 = document.getElementById('dirAssignTeacher');
+      if (el1) el1.innerHTML = opts;
+      if (el2) el2.innerHTML = opts;
+    }
+
+    async function crearMateria() {
+      const name = document.getElementById('newSubjectName').value.trim();
+      const teacher_id = document.getElementById('newSubjectTeacher').value;
+      if (!name) { showAlert('Nombre requerido', 'warning'); return; }
+      const res = await api('/api/subjects', { method: 'POST', body: JSON.stringify({ name, teacher_id: teacher_id ? parseInt(teacher_id) : null }) });
+      if (res && res.subject) {
+        showBanner('¡Éxito!', 'Materia registrada correctamente');
+        document.getElementById('newSubjectName').value = '';
+        loadAll();
+      }
+    }
+
+    function openAssign(id, name) {
+      selectedSubjectId = id;
+      document.getElementById('dirAssignName').textContent = name;
+      document.getElementById('dirAssignPanel').style.display = 'block';
+      document.getElementById('dirAssignPanel').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function confirmarAsignacion() {
+      const teacher_id = document.getElementById('dirAssignTeacher').value;
+      const res = await api(`/api/subjects/${selectedSubjectId}/assign`, { method: 'PUT', body: JSON.stringify({ teacher_id: teacher_id ? parseInt(teacher_id) : null }) });
+      if (res) {
+        showBanner('Asignación Éxitosa', 'El docente ha sido reasignado.');
+        document.getElementById('dirAssignPanel').style.display = 'none';
+        loadAll();
+      }
+    }
+
+    function toggleSidebar() {
+      const sb = document.querySelector(".sidebar");
+      const overlay = document.getElementById("sidebarOverlay");
+      sb.classList.toggle("open");
+      overlay.classList.toggle("open");
+    }
+  </script>
+</body>
+
+</html>
