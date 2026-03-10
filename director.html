@@ -11,43 +11,36 @@
 </head>
 
 <body>
-
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-
   <aside class="sidebar">
     <!-- PERFIL EN LA ESQUINA IZQUIERDA -->
     <div class="sidebar-profile">
       <img src="cea_logo.png" id="sidebarAvatar" alt="Avatar CEA" class="sidebar-avatar">
       <div class="sidebar-profile-info">
-        <strong id="sidebarUserName">Cargando...</strong>
-        <small>Portal Dirección</small>
+        <strong>EduConnect</strong>
+        <small>PORTAL DIRECCIÓN</small>
       </div>
     </div>
-
     <nav>
       <a href="#" class="active" onclick="showTab('inicio',this)">🏠 Inicio</a>
       <a href="#" onclick="showTab('materias',this)">📚 Materias</a>
       <a href="#" onclick="showTab('personal',this)">👥 Personal</a>
       <a href="#" onclick="showTab('anuncios',this)">📢 Anuncios</a>
+      <a href="#" onclick="openProfileModal()">👤 Mi Perfil</a>
     </nav>
-
-    <!-- CERRAR SESIÓN DENTRO DEL SIDEBAR -->
     <div class="sidebar-logout">
       <a href="#" onclick="logout()">🔴 Cerrar Sesión</a>
     </div>
   </aside>
-
   <main class="main">
     <div class="topbar">
       <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
       <img src="cea_logo.png" class="topbar-logo" alt="CEA Logo">
     </div>
-
     <div class="header">
       <h1>Panel de Dirección</h1>
       <p>Bienvenido, <strong id="welcomeName">Director</strong></p>
     </div>
-
     <!-- ══ TAB: INICIO ══ -->
     <div class="tab-content active" id="tab-inicio">
       <!-- STATS SOLO EN INICIO -->
@@ -69,7 +62,6 @@
           <div class="stat-lbl">Materias</div>
         </div>
       </div>
-
       <div class="grid-2">
         <div class="card">
           <h3>👥 Estudiantes por Materia</h3>
@@ -98,7 +90,6 @@
         </div>
       </div>
     </div>
-
     <!-- ══ TAB: MATERIAS ══ -->
     <div class="tab-content" id="tab-materias">
       <div class="grid-2">
@@ -150,7 +141,6 @@
         </div>
       </div>
     </div>
-
     <!-- ══ TAB: PERSONAL ══ -->
     <div class="tab-content" id="tab-personal">
       <div class="card">
@@ -174,7 +164,6 @@
         </div>
       </div>
     </div>
-
     <!-- ══ TAB: ANUNCIOS ══ -->
     <div class="tab-content" id="tab-anuncios">
       <div class="grid-2">
@@ -214,10 +203,8 @@
       </div>
     </div>
   </main>
-
   <script>
     let allSubjects = [], allTeachers = [], selectedSubjectId = null;
-
     document.addEventListener('DOMContentLoaded', () => {
       if (!token) { window.location.href = 'index.html'; return; }
       const u = currentUser;
@@ -229,7 +216,6 @@
       }
       loadAll();
     });
-
     async function loadAll() {
       const [stats, personnel, subjects, msgs] = await Promise.all([
         api('/api/director/stats'),
@@ -237,7 +223,6 @@
         api('/api/subjects'),
         api('/api/messages')
       ]);
-
       if (stats) {
         document.getElementById('statProfesores').textContent = stats.teachers || 0;
         document.getElementById('statEstudiantes').textContent = stats.students || 0;
@@ -256,7 +241,6 @@
       }
       if (msgs) renderMsgHistory(msgs.sent || [], msgs.received || []);
     }
-
     function renderPersonnel(personnel) {
       document.getElementById('personnelGrid').innerHTML = personnel.filter(p => p.role === 'profesor').map(p => `
         <div class="user-card">
@@ -264,7 +248,6 @@
           <strong>${p.first_name} ${p.last_name}</strong>
           <p style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">CP: ${p.carnet}</p>
         </div>`).join('') || '<p>Sin docentes.</p>';
-
       document.getElementById('staffTable').innerHTML = personnel.map(p => `
         <tr>
           <td><strong>${p.first_name} ${p.last_name}</strong></td>
@@ -273,19 +256,16 @@
           <td>${p.username}</td>
         </tr>`).join('');
     }
-
     function renderSubjectTable(subjects) {
       document.getElementById('subjectStudentTable').innerHTML = subjects.length
         ? subjects.map(s => `<tr><td><strong>${s.name}</strong></td><td>${s.teacher_name || 'Sin asignar'}</td><td><span class="badge badge-purple">${s.enrolled_count || 0} inscritos</span></td></tr>`).join('')
         : '<tr><td colspan="3">Sin materias.</td></tr>';
     }
-
     function renderAllSubjectsTable(subjects) {
       document.getElementById('allSubjectsTable').innerHTML = subjects.length
         ? subjects.map(s => `<tr><td><strong>${s.name}</strong></td><td>${s.teacher_name || '—'}</td><td><button class="btn btn-sm btn-purple" onclick="openAssign(${s.id},'${s.name}')">Reasignar</button></td></tr>`).join('')
         : '<tr><td colspan="3">No hay materias registradas.</td></tr>';
     }
-
     function fillTeacherSelects() {
       const opts = '<option value="">— Seleccionar Docente —</option>' + allTeachers.map(t => `<option value="${t.id}">${t.first_name} ${t.last_name}</option>`).join('');
       const el1 = document.getElementById('newSubjectTeacher');
@@ -293,7 +273,6 @@
       if (el1) el1.innerHTML = opts;
       if (el2) el2.innerHTML = opts;
     }
-
     async function crearMateria() {
       const name = document.getElementById('newSubjectName').value.trim();
       const teacher_id = document.getElementById('newSubjectTeacher').value;
@@ -305,14 +284,12 @@
         loadAll();
       }
     }
-
     function openAssign(id, name) {
       selectedSubjectId = id;
       document.getElementById('dirAssignName').textContent = name;
       document.getElementById('dirAssignPanel').style.display = 'block';
       document.getElementById('dirAssignPanel').scrollIntoView({ behavior: 'smooth' });
     }
-
     async function confirmarAsignacion() {
       const teacher_id = document.getElementById('dirAssignTeacher').value;
       const res = await api(`/api/subjects/${selectedSubjectId}/assign`, { method: 'PUT', body: JSON.stringify({ teacher_id: teacher_id ? parseInt(teacher_id) : null }) });
@@ -322,7 +299,6 @@
         loadAll();
       }
     }
-
     function toggleSidebar() {
       const sb = document.querySelector(".sidebar");
       const overlay = document.getElementById("sidebarOverlay");

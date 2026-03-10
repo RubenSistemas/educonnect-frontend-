@@ -11,42 +11,35 @@
 </head>
 
 <body>
-
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-
   <aside class="sidebar">
     <!-- PERFIL EN LA ESQUINA IZQUIERDA -->
     <div class="sidebar-profile">
       <img src="cea_logo.png" id="sidebarAvatar" alt="Avatar CEA" class="sidebar-avatar">
       <div class="sidebar-profile-info">
-        <strong id="sidebarUserName">Cargando...</strong>
-        <small>Portal Docente</small>
+        <strong>EduConnect</strong>
+        <small>PORTAL DOCENTE</small>
       </div>
     </div>
-
     <nav>
       <a href="#" class="active" onclick="showTab('notas',this)">📝 Calificar</a>
       <a href="#" onclick="showTab('materiales',this)">📁 Materiales</a>
       <a href="#" onclick="showTab('anuncios',this)">📢 Anuncios</a>
+      <a href="#" onclick="openProfileModal()">👤 Mi Perfil</a>
     </nav>
-
-    <!-- CERRAR SESIÓN DENTRO DEL SIDEBAR -->
     <div class="sidebar-logout">
       <a href="#" onclick="logout()">🔴 Cerrar Sesión</a>
     </div>
   </aside>
-
   <main class="main">
     <div class="topbar">
       <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
       <img src="cea_logo.png" class="topbar-logo" alt="CEA Logo">
     </div>
-
     <div class="header">
       <h1>Panel Docente</h1>
       <p>Bienvenido, <strong id="welcomeName">Docente</strong></p>
     </div>
-
     <!-- ══ TAB: NOTAS ══ -->
     <div class="tab-content active" id="tab-notas">
       <div class="card">
@@ -85,7 +78,6 @@
         </div>
       </div>
     </div>
-
     <!-- ══ TAB: MATERIALES ══ -->
     <div class="tab-content" id="tab-materiales">
       <div class="card">
@@ -106,7 +98,6 @@
         </div>
       </div>
     </div>
-
     <!-- ══ TAB: ANUNCIOS ══ -->
     <div class="tab-content" id="tab-anuncios">
       <div class="grid-2">
@@ -124,10 +115,8 @@
       </div>
     </div>
   </main>
-
   <script>
     let mySubjects = [], selectedSubjectId = null;
-
     document.addEventListener('DOMContentLoaded', () => {
       if (!token) { window.location.href = 'index.html'; return; }
       const u = currentUser;
@@ -140,7 +129,6 @@
       loadSubjects();
       loadMessages();
     });
-
     async function loadSubjects() {
       const subjects = await api('/api/profesor/subjects');
       if (subjects) {
@@ -152,7 +140,6 @@
         document.getElementById('matSubject').innerHTML = '<option value="">— Seleccionar —</option>' + subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
       }
     }
-
     async function selectSubject(id, name) {
       selectedSubjectId = id;
       document.getElementById('selectedSubjectName').textContent = name;
@@ -172,12 +159,10 @@
           </tr>`).join('');
       }
     }
-
     async function loadMessages() {
       const msgs = await api('/api/messages');
       if (msgs) renderMsgHistory([], msgs.received || []);
     }
-
     async function subirMaterial() {
       const subject_id = document.getElementById('matSubject').value;
       const title = document.getElementById('matTitle').value.trim();
@@ -191,7 +176,6 @@
         loadMaterialsList(subject_id);
       }
     }
-
     async function loadMaterialsList(sid) {
       const mats = await api(`/api/profesor/materials/${sid}`);
       if (mats) {
@@ -202,13 +186,11 @@
           </div>`).join('') || '<p style="font-size:0.8rem; color:var(--text-muted)">Sin materiales aún.</p>';
       }
     }
-
     async function borrarMaterial(id) {
       await api(`/api/profesor/materials/${id}`, { method: 'DELETE' });
       const sid = document.getElementById('matSubject').value;
       if (sid) loadMaterialsList(sid);
     }
-
     async function guardarNota(enrollmentId, dimension, score, totalEl) {
       const res = await api('/api/profesor/grade', { method: 'POST', body: JSON.stringify({ enrollment_id: enrollmentId, dimension, score: parseFloat(score) }) });
       if (res && res.grade) {
@@ -222,7 +204,6 @@
         }
       }
     }
-
     function toggleSidebar() {
       document.querySelector(".sidebar").classList.toggle("open");
       document.getElementById("sidebarOverlay").classList.toggle("open");

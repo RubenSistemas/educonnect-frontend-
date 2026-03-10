@@ -11,42 +11,35 @@
 </head>
 
 <body>
-
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-
   <aside class="sidebar">
     <!-- PERFIL EN LA ESQUINA IZQUIERDA -->
     <div class="sidebar-profile">
       <img src="cea_logo.png" id="sidebarAvatar" alt="Avatar CEA" class="sidebar-avatar">
       <div class="sidebar-profile-info">
-        <strong id="sidebarUserName">Cargando...</strong>
-        <small>Portal Estudiante</small>
+        <strong>EduConnect</strong>
+        <small>PORTAL ESTUDIANTE</small>
       </div>
     </div>
-
     <nav>
       <a href="#" class="active" onclick="showTab('notas',this)">📊 Promedios</a>
       <a href="#" onclick="showTab('materiales',this)">📁 Biblioteca</a>
       <a href="#" onclick="showTab('anuncios',this)">📢 Novedades</a>
+      <a href="#" onclick="openProfileModal()">👤 Mi Perfil</a>
     </nav>
-
-    <!-- CERRAR SESIÓN DENTRO DEL SIDEBAR -->
     <div class="sidebar-logout">
       <a href="#" onclick="logout()">🔴 Cerrar Sesión</a>
     </div>
   </aside>
-
   <main class="main">
     <div class="topbar">
       <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
       <img src="cea_logo.png" class="topbar-logo" alt="CEA Logo">
     </div>
-
     <div class="header">
       <h1>Panel de Estudiante</h1>
       <p>Bienvenido, <strong id="welcomeName">Estudiante</strong></p>
     </div>
-
     <!-- ══ TAB: NOTAS ══ -->
     <div class="tab-content active" id="tab-notas">
       <div class="card">
@@ -66,12 +59,10 @@
         </div>
       </div>
     </div>
-
     <!-- ══ TAB: MATERIALES ══ -->
     <div class="tab-content" id="tab-materiales">
       <div class="grid-2" id="materialsGrid"></div>
     </div>
-
     <!-- ══ TAB: ANUNCIOS ══ -->
     <div class="tab-content" id="tab-anuncios">
       <div class="card">
@@ -80,7 +71,6 @@
       </div>
     </div>
   </main>
-
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       if (!token) { window.location.href = 'index.html'; return; }
@@ -94,7 +84,6 @@
       loadGrades();
       loadMessages();
     });
-
     async function loadGrades() {
       const grades = await api('/api/estudiante/grades');
       if (grades) {
@@ -105,7 +94,6 @@
             <td><strong style="font-size:1.1rem; color:var(--accent)">${g.total} / 100</strong></td>
             <td><span class="badge ${g.estado === 'Aprobado' ? 'badge-green' : 'badge-red'}">${g.estado}</span></td>
           </tr>`).join('');
-
         document.getElementById('materialsGrid').innerHTML = grades.map(g => `
           <div class="card">
             <h4>📁 ${g.subject}</h4>
@@ -114,7 +102,6 @@
           </div>`).join('');
       }
     }
-
     async function loadMaterials(sid) {
       const mats = await api(`/api/estudiante/materials/${sid}`);
       if (mats) {
@@ -124,12 +111,10 @@
           </div>`).join('') || '<p style="font-size:0.8rem; color:var(--text-muted)">Aún no hay recursos subidos.</p>';
       }
     }
-
     async function loadMessages() {
       const msgs = await api('/api/messages');
       if (msgs) renderMsgHistory([], msgs.received || []);
     }
-
     function toggleSidebar() {
       document.querySelector(".sidebar").classList.toggle("open");
       document.getElementById("sidebarOverlay").classList.toggle("open");
