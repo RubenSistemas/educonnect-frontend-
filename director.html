@@ -208,12 +208,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       if (!token) { window.location.href = 'index.html'; return; }
       const u = currentUser;
-      if (u) {
-        document.getElementById('welcomeName').textContent = `${u.first_name || ''} ${u.last_name || ''}`.trim();
-        document.getElementById('sidebarUserName').textContent = `${u.first_name || ''} ${u.last_name || ''}`.trim();
-        const initial = u.first_name ? u.first_name[0].toUpperCase() : 'D';
-        document.getElementById('sidebarAvatar').src = `https://ui-avatars.com/api/?name=${initial}&background=22c55e&color=fff&size=64`;
-      }
+      // We do NOT override sidebarAvatar src here to keep cea_logo.png
       loadAll();
     });
     async function loadAll() {
