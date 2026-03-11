@@ -43,22 +43,7 @@
     </div>
     <!-- ══ TAB: NOTAS ══ -->
     <div class="tab-content active" id="tab-notas">
-      <div class="card">
-        <h3>📊 Calificaciones por Materia</h3>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Materia</th>
-                <th>Docente</th>
-                <th>Promedio Total</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody id="gradesTable"></tbody>
-          </table>
-        </div>
-      </div>
+      <div id="gradesContainer"></div>
     </div>
     <!-- ══ TAB: MATERIALES ══ -->
     <div class="tab-content" id="tab-materiales">
@@ -80,21 +65,47 @@
     });
     async function loadGrades() {
       const grades = await api('/api/estudiante/grades');
-      if (grades) {
-        document.getElementById('gradesTable').innerHTML = grades.map(g => `
-          <tr>
-            <td><strong>${g.subject}</strong></td>
-            <td>${g.teacher_name}</td>
-            <td><strong style="font-size:1.1rem; color:var(--accent)">${g.total} / 100</strong></td>
-            <td><span class="badge ${g.estado === 'Aprobado' ? 'badge-green' : 'badge-red'}">${g.estado}</span></td>
-          </tr>`).join('');
-        document.getElementById('materialsGrid').innerHTML = grades.map(g => `
-          <div class="card">
-            <h4>📁 ${g.subject}</h4>
-            <button class="btn btn-sm btn-purple" onclick="loadMaterials(${g.subject_id})">📁 Ver Recursos</button>
-            <div id="mats-${g.subject_id}" style="margin-top:16px"></div>
-          </div>`).join('');
+      const container = document.getElementById('gradesContainer');
+      const matsGrid = document.getElementById('materialsGrid');
+      if (!grades || grades.length === 0) {
+        container.innerHTML = '<div class="card"><p style="color:var(--text-muted)">Aún no tienes inscripciones registradas.</p></div>';
+        return;
       }
+      container.innerHTML = grades.map(g => {
+        const isTecnica = g.area === 'Técnica';
+        const moduleRows = g.modules.map(m => {
+          const score = g.module_scores[m];
+          const display = (score !== null && score !== undefined) ? score : '—';
+          return `<tr><td>${m}</td><td><strong>${display}</strong>${score !== null && score !== undefined ? ' / 100' : ''}</td></tr>`;
+        }).join('');
+        const promedioHtml = !isTecnica
+          ? `<tr style="border-top:1px solid var(--border)">
+               <td style="font-weight:700">Promedio</td>
+               <td style="font-weight:700; color:var(--accent)">${g.promedio !== null && g.promedio !== undefined ? g.promedio + ' / 100' : '—'}</td>
+             </tr>` : '';
+        const badgeClass = g.estado === 'Aprobado' ? 'badge-green' : g.estado === 'Reprobado' ? 'badge-red' : 'badge-blue';
+        return `<div class="card" style="margin-bottom:16px">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; flex-wrap:wrap; gap:8px">
+            <div>
+              <h4 style="margin:0">📚 ${g.subject}</h4>
+              <small style="color:var(--text-muted)">${g.area} &bull; ${g.level} &bull; Docente: ${g.teacher_name}</small>
+            </div>
+            <span class="badge ${badgeClass}">${g.estado}</span>
+          </div>
+          <div class="table-wrap" style="overflow-x:auto">
+            <table style="min-width:220px">
+              <thead><tr><th>Módulo</th><th>Nota</th></tr></thead>
+              <tbody>${moduleRows}${promedioHtml}</tbody>
+            </table>
+          </div>
+        </div>`;
+      }).join('');
+      matsGrid.innerHTML = grades.map(g => `
+        <div class="card">
+          <h4>📁 ${g.subject}</h4>
+          <button class="btn btn-sm btn-purple" onclick="loadMaterials(${g.subject_id})">Ver Recursos</button>
+          <div id="mats-${g.subject_id}" style="margin-top:16px"></div>
+        </div>`).join('');
     }
     async function loadMaterials(sid) {
       const mats = await api(`/api/estudiante/materials/${sid}`);

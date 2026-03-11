@@ -59,19 +59,10 @@
             </div>
             <button class="btn btn-sm btn-purple" onclick="descargarNotasMateria()">📥 Exportar CSV</button>
           </div>
-          <div class="table-wrap">
+          <div class="table-wrap" style="overflow-x:auto">
             <table>
-              <thead>
-                <tr>
-                  <th>Estudiante</th>
-                  <th>SER (10)</th>
-                  <th>SABER (35)</th>
-                  <th>HACER (35)</th>
-                  <th>DECIDIR (10)</th>
-                  <th>AUTO (10)</th>
-                  <th>Total</th>
-                  <th>Acción</th>
-                </tr>
+              <thead id="gradesTableHead">
+                <tr><th>Estudiante</th><th>Cargando...</th></tr>
               </thead>
               <tbody id="studentsTable"></tbody>
             </table>
@@ -145,18 +136,40 @@
       document.getElementById('studentsSection').style.display = 'block';
       const data = await api(`/api/profesor/students_by_subject/${id}`);
       if (data && data.students) {
-        document.getElementById('studentsTable').innerHTML = data.students.map(s => `
-          <tr>
-            <td><strong>${s.first_name} ${s.last_name}</strong></td>
-            <td><input class="grade-input" type="number" value="0" max="10"></td>
-            <td><input class="grade-input" type="number" value="0" max="35"></td>
-            <td><input class="grade-input" type="number" value="0" max="35"></td>
-            <td><input class="grade-input" type="number" value="0" max="10"></td>
-            <td><input class="grade-input" type="number" value="0" max="10"></td>
-            <td><strong style="color:var(--accent)">0</strong></td>
-            <td><button class="btn btn-sm btn-primary" onclick="showBanner('PRO','Próximamente guardado real')">💾</button></td>
-          </tr>`).join('');
+        const area = data.area || 'Humanística';
+        renderStudentsTable(data.students, area);
       }
+    }
+    function renderStudentsTable(students, area) {
+      const isTecnica = area === 'Técnica';
+      const modules = isTecnica
+        ? ['Módulo 1', 'Módulo 2', 'Módulo 3', 'Módulo 4', 'Módulo 5']
+        : ['Módulo 1', 'Módulo 2'];
+
+      // Build dynamic header
+      let headCols = `<th>Estudiante</th><th>Nivel</th>`;
+      modules.forEach(m => headCols += `<th>${m}</th>`);
+      if (!isTecnica) headCols += `<th>Promedio</th>`;
+      headCols += `<th>💾</th>`;
+      document.getElementById('gradesTableHead').innerHTML = `<tr>${headCols}</tr>`;
+
+      // Build rows
+      document.getElementById('studentsTable').innerHTML = students.map(s => {
+        const gradeMap = {};
+        (s.grades || []).forEach(g => gradeMap[g.dimension] = g.score);
+
+        let cells = `<td><strong>${s.first_name} ${s.last_name}</strong><br><small style="color:var(--text-muted)">${s.carnet}</small></td>`;
+        cells += `<td><span class="badge badge-blue" style="font-size:0.65rem">${s.level || '—'}</span></td>`;
+        modules.forEach(m => {
+          cells += `<td><input class="grade-input" type="number" id="grade-${s.enrollment_id}-${m.replace(/ /g,'_')}" value="${gradeMap[m] ?? ''}" min="0" max="100" style="width:60px; padding:4px 6px; text-align:center;"></td>`;
+        });
+        if (!isTecnica) {
+          const avg = modules.reduce((sum, m) => sum + (parseFloat(gradeMap[m]) || 0), 0) / modules.length;
+          cells += `<td id="avg-${s.enrollment_id}"><strong style="color:var(--accent)">${isNaN(avg) ? '—' : avg.toFixed(1)}</strong></td>`;
+        }
+        cells += `<td><button class="btn btn-sm btn-primary" onclick="guardarNotas(${s.enrollment_id}, ${JSON.stringify(modules)}, ${!isTecnica})">💾</button></td>`;
+        return `<tr>${cells}</tr>`;
+      }).join('');
     }
     async function loadMessages() {
       const msgs = await api('/api/messages');
@@ -190,16 +203,27 @@
       const sid = document.getElementById('matSubject').value;
       if (sid) loadMaterialsList(sid);
     }
-    async function guardarNota(enrollmentId, dimension, score, totalEl) {
-      const res = await api('/api/profesor/grade', { method: 'POST', body: JSON.stringify({ enrollment_id: enrollmentId, dimension, score: parseFloat(score) }) });
-      if (res && res.grade) {
-        showToast('Nota guardada ✅');
-        const row = document.getElementById('row-enr-' + enrollmentId);
-        if (row) {
-          const inputs = row.querySelectorAll('.grade-input');
-          let total = 0;
-          inputs.forEach(inp => total += parseFloat(inp.value) || 0);
-          row.querySelector('.total-cell').textContent = total;
+    async function guardarNotas(enrollmentId, modules, calcAvg) {
+      let saved = 0;
+      for (const m of modules) {
+        const inp = document.getElementById(`grade-${enrollmentId}-${m.replace(/ /g,'_')}`);
+        if (!inp) continue;
+        const score = parseFloat(inp.value);
+        if (isNaN(score)) continue;
+        const res = await api('/api/profesor/grade', { method: 'POST', body: JSON.stringify({ enrollment_id: enrollmentId, dimension: m, score }) });
+        if (res && res.grade) saved++;
+      }
+      if (saved > 0) {
+        showToast('Notas guardadas ✅');
+        if (calcAvg) {
+          // recalculate average display
+          let total = 0, count = 0;
+          modules.forEach(m => {
+            const inp = document.getElementById(`grade-${enrollmentId}-${m.replace(/ /g,'_')}`);
+            if (inp && inp.value !== '') { total += parseFloat(inp.value) || 0; count++; }
+          });
+          const avgEl = document.getElementById(`avg-${enrollmentId}`);
+          if (avgEl) avgEl.innerHTML = `<strong style="color:var(--accent)">${count ? (total/count).toFixed(1) : '—'}</strong>`;
         }
       }
     }
