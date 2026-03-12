@@ -396,7 +396,10 @@
                     <td><code>${p.carnet}</code></td>
                     <td><span class="badge badge-accent">${p.especialidad}</span> <small style="color:var(--text-muted)">${p.nivel || ''}</small></td>
                     <td>
-                      <button class="btn btn-sm" style="background:#4b5563; color:white" onclick="resetPassword(${p.id},'${p.first_name}')" title="Resetear Contraseña">🔑</button>
+                      <div style="display:flex; gap:8px">
+                        <button class="btn btn-sm" style="background:#4b5563; color:white" onclick="resetPassword(${p.id},'${p.first_name}')" title="Resetear Contraseña">🔑</button>
+                        <button class="btn btn-sm btn-red" onclick="deleteUser(${p.id}, '${p.first_name} ${p.last_name}')">🗑️</button>
+                      </div>
                     </td>
                   </tr>`).join('')}
               </tbody>
@@ -418,7 +421,10 @@
           <td><span class="badge ${p.role === 'profesor' ? 'badge-green' : 'badge-blue'}">${p.role.toUpperCase()}</span></td>
           <td>${p.username}</td>
           <td>
-            <button class="btn btn-sm" style="background:#4b5563; color:white" onclick="resetPassword(${p.id},'${p.first_name}')" title="Resetear Contraseña">🔑</button>
+            <div style="display:flex; gap:8px">
+              <button class="btn btn-sm" style="background:#4b5563; color:white" onclick="resetPassword(${p.id},'${p.first_name}')" title="Resetear Contraseña">🔑</button>
+              <button class="btn btn-sm btn-red" onclick="deleteUser(${p.id}, '${p.first_name} ${p.last_name}')">🗑️</button>
+            </div>
           </td>
         </tr>`).join('');
     }
@@ -432,11 +438,21 @@
       const hum = subjects.filter(s => s.area === 'Humanística');
 
       document.getElementById('tableTecnica').innerHTML = tec.length
-        ? tec.map(s => `<tr><td><strong>${s.name}</strong></td><td>${s.teacher_name || '—'}</td><td><button class="btn btn-sm btn-purple" onclick="openAssign(${s.id},'${s.name}')">Reasignar</button></td></tr>`).join('')
+        ? tec.map(s => `<tr><td><strong>${s.name}</strong></td><td>${s.teacher_name || '—'}</td><td>
+            <div style="display:flex; gap:8px">
+              <button class="btn btn-sm btn-purple" onclick="openAssign(${s.id},'${s.name}')">Reasignar</button>
+              <button class="btn btn-sm btn-red" onclick="deleteSubject(${s.id},'${s.name}')">🗑️</button>
+            </div>
+          </td></tr>`).join('')
         : '<tr><td colspan="3">No hay especialidades técnicas.</td></tr>';
 
       document.getElementById('tableHumanistica').innerHTML = hum.length
-        ? hum.map(s => `<tr><td><strong>${s.name}</strong></td><td>${s.teacher_name || '—'}</td><td><button class="btn btn-sm btn-purple" onclick="openAssign(${s.id},'${s.name}')">Reasignar</button></td></tr>`).join('')
+        ? hum.map(s => `<tr><td><strong>${s.name}</strong></td><td>${s.teacher_name || '—'}</td><td>
+            <div style="display:flex; gap:8px">
+              <button class="btn btn-sm btn-purple" onclick="openAssign(${s.id},'${s.name}')">Reasignar</button>
+              <button class="btn btn-sm btn-red" onclick="deleteSubject(${s.id},'${s.name}')">🗑️</button>
+            </div>
+          </td></tr>`).join('')
         : '<tr><td colspan="3">No hay especialidades humanísticas.</td></tr>';
     }
     function fillTeacherSelects() {
@@ -517,6 +533,53 @@
         cargarListaInscritos();
       }
     }
+    async function loadPerformanceStats() {
+      const data = await api('/api/director/stats/performance');
+      if (!data) return;
+      const ctx = document.getElementById('performanceChart').getContext('2d');
+      const labels = Object.keys(data);
+      const values = labels.map(l => data[l].avg);
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels.map(l => l.length > 20 ? l.substring(0,20)+'...' : l),
+          datasets: [{
+            label: 'Promedio de Notas (%)',
+            data: values,
+            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+            borderColor: 'rgba(59, 130, 246, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true, max: 100 } },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    async function deleteSubject(id, name) {
+      if (!confirm(`¿Desea ELIMINAR permanentemente la materia "${name}"? Esta acción no se puede deshacer.`)) return;
+      const res = await api(`/api/subjects/${id}`, { method: 'DELETE' });
+      if (res) {
+        showBanner('Eliminado', 'Materia eliminada correctamente');
+        loadAll();
+      }
+    }
+
+    async function deleteUser(uid, name) {
+      if (!confirm(`¿Está seguro de ELIMINAR permanentemente al usuario "${name}"? Esta acción no se puede deshacer.`)) return;
+      const res = await api(`/api/admin/users/${uid}`, { method: 'DELETE' });
+      if (res && res.message) {
+        showBanner('¡Eliminado!', res.message);
+        loadAll();
+      } else {
+        showAlert(res?.message || 'Error al eliminar usuario', 'error');
+      }
+    }
+
     function toggleSidebar() {
       const sb = document.querySelector(".sidebar");
       const overlay = document.getElementById("sidebarOverlay");
