@@ -45,7 +45,7 @@
     <!-- ══ TAB: INICIO ══ -->
     <div class="tab-content active" id="tab-inicio">
       <!-- STATS SOLO EN INICIO -->
-      <div class="grid-4" style="margin-top: 10px;">
+      <div class="grid-4" style="margin-top: 10px; width: 100%;">
         <div class="stat-card accent">
           <div class="stat-val" id="statProfesores">0</div>
           <div class="stat-lbl">Docentes</div>
@@ -63,7 +63,7 @@
           <div class="stat-lbl">Materias</div>
         </div>
       </div>
-      <div class="grid-1-2">
+      <div class="grid-2">
         <div class="card">
           <h3>👥 Estudiantes por Materia</h3>
           <div class="table-wrap">
@@ -85,8 +85,20 @@
         </div>
         <div class="card">
           <h3>👨‍🏫 Personal Docente</h3>
-          <div class="person-grid" id="personnelGrid">
-            <p style="color:var(--text-muted)">Cargando personal...</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Docente</th>
+                  <th>Carnet de Identidad</th>
+                </tr>
+              </thead>
+              <tbody id="personnelTableBody">
+                <tr class="empty-row">
+                  <td colspan="2">Cargando personal...</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -115,12 +127,13 @@
           </div>
           <button class="btn btn-primary" onclick="crearMateria()">✅ Guardar Materia</button>
         </div>
+        <div class="card">
           <h3>📚 Área de Docentes</h3>
           <div class="table-wrap">
             <table style="margin-bottom: 20px;">
               <thead>
                 <tr>
-                  <th colspan="3" style="text-align: center; background: rgba(59, 130, 246, 0.2)">TÉCNICA</th>
+                  <th colspan="3" style="text-align: center; background: rgba(59, 130, 246, 0.2); color: #fff;">TÉCNICA</th>
                 </tr>
                 <tr>
                   <th>Especialidad</th>
@@ -136,7 +149,7 @@
             <table>
               <thead>
                 <tr>
-                  <th colspan="3" style="text-align: center; background: rgba(139, 92, 246, 0.2)">HUMANÍSTICA</th>
+                  <th colspan="3" style="text-align: center; background: rgba(139, 92, 246, 0.2); color: #fff;">HUMANÍSTICA</th>
                 </tr>
                 <tr>
                   <th>Especialidad</th>
@@ -149,6 +162,7 @@
               </tbody>
             </table>
           </div>
+        </div>
         </div>
       </div>
       <div class="card" id="dirAssignPanel" style="display:none; margin-top:20px">
@@ -261,12 +275,14 @@
       if (msgs) renderMsgHistory(msgs.sent || [], msgs.received || []);
     }
     function renderPersonnel(personnel) {
-      document.getElementById('personnelGrid').innerHTML = personnel.filter(p => p.role === 'profesor').map(p => `
-        <div class="user-card">
-          <div class="avatar-lg">${p.first_name[0]}${p.last_name[0]}</div>
-          <strong>${p.first_name} ${p.last_name}</strong>
-          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">CP: ${p.carnet}</p>
-        </div>`).join('') || '<p>Sin docentes.</p>';
+      const teachers = personnel.filter(p => p.role === 'profesor');
+      document.getElementById('personnelTableBody').innerHTML = teachers.length 
+        ? teachers.map(p => `
+          <tr>
+            <td><strong>${p.first_name} ${p.last_name}</strong></td>
+            <td><code>${p.carnet}</code></td>
+          </tr>`).join('')
+        : '<tr><td colspan="2">Sin docentes registrados.</td></tr>';
       document.getElementById('staffTable').innerHTML = personnel.map(p => `
         <tr>
           <td><strong>${p.first_name} ${p.last_name}</strong></td>
