@@ -8,9 +8,53 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
+    <!-- ══ MODAL DE CERTIFICADO (PARA IMPRESIÓN) ══ -->
+    <div id="certModal" class="modal" style="display:none; background: rgba(0,0,0,0.85); overflow-y: scroll;">
+       <div class="modal-content" style="max-width: 800px; padding:0; background:white; color:#333; margin: 40px auto; position:relative; box-shadow: 0 0 50px rgba(0,0,0,0.5)">
+           <div style="padding: 10px; display:flex; justify-content: flex-end; background: #eee; border-bottom: 2px solid #ddd;" class="no-print">
+               <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir Certificado</button>
+               <button class="btn" style="background:#888; color:white; margin-left:10px;" onclick="document.getElementById('certModal').style.display='none'">Cerrar</button>
+           </div>
+           <!-- DISEÑO DEL CERTIFICADO -->
+           <div id="printableCert" style="padding: 60px; border: 20px solid #1a2a40; min-height: 500px; text-align: center; position:relative;">
+               <div style="position:absolute; top:40px; left:40px; opacity: 0.1; width:200px">
+                   <img src="cea_logo.png" style="width:100%">
+               </div>
+               <h1 style="color:#1a2a40; font-size: 32px; letter-spacing: 2px; margin-bottom: 40px;">CERTIFICADO DE INSCRIPCIÓN</h1>
+               <p style="font-size: 18px; margin-bottom: 20px;">Se certifica que el estudiante:</p>
+               <h2 id="certStudentName" style="color:#2a4a70; font-size: 36px; margin-bottom: 10px; text-transform: uppercase;">NOMBRE COMPLETO</h2>
+               <p style="font-size: 16px; color:#555;">Con C.I.: <strong id="certStudentCarnet">0000000</strong></p>
+               <hr style="width: 100px; border: 1px solid #ddd; margin: 40px auto;">
+               <p style="font-size: 18px;">Se encuentra formalmente inscrito en el:</p>
+               <h3 id="certLevel" style="color:#1a2a40; font-size: 24px; margin: 10px 0;">NIVEL O CURSO</h3>
+               <p style="font-size: 18px;">Área: <strong id="certArea">Técnica/Humanística</strong></p>
+               <p style="margin-top: 20px;">Materia/Especialidad: <strong id="certSubject">Nombre Especialidad</strong></p>
+               <div style="margin-top: 80px; display: flex; justify-content: space-around;">
+                   <div style="text-align: center;">
+                       <div style="width:180px; border-top: 1px solid #333; margin-top: 40px; padding-top: 5px;">Firma del Director</div>
+                   </div>
+                   <div style="text-align: center;">
+                       <div style="width:180px; border-top: 1px solid #333; margin-top: 40px; padding-top: 5px;">Sello del CEA</div>
+                   </div>
+               </div>
+           </div>
+       </div>
+    </div>
+
+    <style>
+      @media print {
+        body * { visibility: hidden; }
+        #certModal, #certModal *, #printableCert, #printableCert * { visibility: visible; }
+        #certModal { position: absolute; left: 0; top: 0; width: 100%; display:block !important; background:white !important; }
+        .no-print { display: none !important; }
+        #printableCert { border: none !important; padding: 20px !important; }
+      }
+    </style>
+    
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
   <aside class="sidebar">
     <!-- PERFIL EN LA ESQUINA IZQUIERDA -->
@@ -82,6 +126,14 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>📊 Rendimiento Académico por Nivel</h3>
+          <p style="color:var(--text-muted); margin-bottom: 15px;">Promedio de notas y balance de aprobados de los últimos registros.</p>
+          <div style="height: 300px; position: relative;">
+            <canvas id="performanceChart"></canvas>
           </div>
         </div>
         <div class="card">
@@ -294,29 +346,26 @@
       loadAll();
     });
     async function loadAll() {
-      const [stats, personnel, subjects, msgs] = await Promise.all([
-        api('/api/director/stats'),
-        api('/api/director/personnel'),
-        api('/api/subjects'),
-        api('/api/messages')
-      ]);
-      if (stats) {
-        document.getElementById('statProfesores').textContent = stats.teachers || 0;
-        document.getElementById('statEstudiantes').textContent = stats.students || 0;
-        document.getElementById('statTotal').textContent = stats.total_users || 0;
-        document.getElementById('statMaterias').textContent = stats.subjects || 0;
+      const res = await api('/api/debug/db');
+      if (res) {
+        document.getElementById('statTotal').textContent = res.users || 0;
+        document.getElementById('statEstudiantes').textContent = res.enrollments || 0;
+        document.getElementById('statMaterias').textContent = res.subjects || 0;
       }
-      if (personnel) {
-        allTeachers = personnel.filter(p => p.role === 'profesor');
-        renderPersonnel(personnel);
+      const data = await api('/api/users/grouped');
+      if (data) {
+        allTeachers = data.profesores || [];
+        allPersonnel = [...(data.directores || []), ...(data.secretarias || []), ...(data.profesores || [])];
+        document.getElementById('statProfesores').textContent = allTeachers.length;
+        renderPersonnel(allPersonnel);
         fillTeacherSelects();
       }
-      if (subjects) {
-        allSubjects = subjects;
-        renderSubjectTable(subjects);
-        renderAllSubjectsTable(subjects);
+      const sData = await api('/api/subjects');
+      if (sData) {
+        renderSubjectTable(sData);
+        renderAllSubjectsTable(sData);
       }
-      if (msgs) renderMsgHistory(msgs.sent || [], msgs.received || []);
+      loadPerformanceStats();
     }
     function renderPersonnel(personnel) {
       const teachers = personnel.filter(p => p.role === 'profesor');
@@ -345,6 +394,9 @@
                     <td><strong>${p.first_name} ${p.last_name}</strong></td>
                     <td><code>${p.carnet}</code></td>
                     <td><span class="badge badge-accent">${p.especialidad}</span> <small style="color:var(--text-muted)">${p.nivel || ''}</small></td>
+                    <td>
+                      <button class="btn btn-sm" style="background:#4b5563; color:white" onclick="resetPassword(${p.id},'${p.first_name}')" title="Resetear Contraseña">🔑</button>
+                    </td>
                   </tr>`).join('')}
               </tbody>
             </table>
@@ -364,6 +416,9 @@
           <td><code>${p.carnet}</code></td>
           <td><span class="badge ${p.role === 'profesor' ? 'badge-green' : 'badge-blue'}">${p.role.toUpperCase()}</span></td>
           <td>${p.username}</td>
+          <td>
+            <button class="btn btn-sm" style="background:#4b5563; color:white" onclick="resetPassword(${p.id},'${p.first_name}')" title="Resetear Contraseña">🔑</button>
+          </td>
         </tr>`).join('');
     }
     function renderSubjectTable(subjects) {
@@ -430,14 +485,28 @@
             <td><span class="badge ${enr.area === 'Técnica' ? 'badge-blue' : 'badge-purple'}">${enr.area}</span></td>
             <td>${enr.subject}</td>
             <td>${enr.teacher}</td>
-            <td>
+            <td style="display:flex; gap:8px">
+              <button class="btn btn-sm btn-purple" onclick="imprimirCertificado(${JSON.stringify(enr).replace(/"/g, '&quot;')})">📜 Certificado</button>
               <button class="btn btn-sm" style="background:var(--danger); color:white" onclick="eliminarInscripcion(${enr.id})">🗑️ Borrar</button>
             </td>
           </tr>
         `).join('');
-      } else {
+    } else {
         tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No hay estudiantes inscritos en este nivel.</td></tr>';
       }
+    }
+    async function resetPassword(userId, name) {
+      if (!confirm(`¿Desea restablecer la contraseña de ${name} a su número de Carnet?`)) return;
+      const res = await api('/api/admin/reset_password', { method: 'POST', body: JSON.stringify({ user_id: userId }) });
+      if (res) showBanner('¡Éxito!', res.message);
+    }
+    function imprimirCertificado(data) {
+      document.getElementById('certStudentName').textContent = data.student_name;
+      document.getElementById('certStudentCarnet').textContent = data.student_carnet;
+      document.getElementById('certLevel').textContent = data.level;
+      document.getElementById('certArea').textContent = data.area;
+      document.getElementById('certSubject').textContent = data.subject;
+      document.getElementById('certModal').style.display = 'block';
     }
     async function eliminarInscripcion(enrId) {
       if (!confirm('¿Está seguro de eliminar esta inscripción? Esta acción no se puede deshacer.')) return;
